@@ -1,3 +1,44 @@
 # aws-cloud-projects
 
 WTC-KE3UCKMV
+
+# AWS Cloud Janitor: Automated Security & Cost Auditor
+
+![AWS](https://img.shields.io/badge/AWS-Cloud-FF9900?logo=amazon-aws)
+![Python](https://img.shields.io/badge/Python-3.9+-3776AB?logo=python&logoColor=white)
+![Terraform](https://img.shields.io/badge/Terraform-IaC-623CE4?logo=terraform)
+![License](https://img.shields.io/badge/License-MIT-green)
+
+## Executive Summary
+**AWS Cloud Janitor** is an automated, event-driven cloud governance tool designed to continuously monitor an AWS environment for security misconfigurations and cost-inefficiencies. Using AWS Lambda and EventBridge, it runs on a scheduled cron basis to detect orphaned resources (like unattached EBS volumes), public S3 buckets, and overly permissive IAM roles, automatically alerting administrators via Amazon SNS.
+
+This project was built to demonstrate the implementation of **FinOps** (Cloud Financial Management) and **DevSecOps** principles, ensuring cloud environments remain secure and cost-optimized without manual intervention.
+
+## Architecture Diagram
+
+```mermaid
+graph LR
+    classDef aws fill:#232F3E,stroke:#FF9900,stroke-width:2px,color:#ffffff;
+    classDef trigger fill:#FF9900,stroke:#232F3E,stroke-width:2px,color:#000000,font-weight:bold;
+    classDef alert fill:#D13212,stroke:#232F3E,stroke-width:2px,color:#ffffff;
+    classDef user fill:#ffffff,stroke:#232F3E,stroke-width:2px,color:#000000;
+
+    EB(["Amazon EventBridge<br/>(Daily Cron: 08:00 UTC)"]):::trigger
+    
+    subgraph AWS_Cloud ["AWS Cloud Environment"]
+        direction LR
+        L(["AWS Lambda<br/>(Python / Boto3)"]):::aws
+        S3(["Amazon S3<br/>(Check Public Access)"]):::aws
+        EC2(["Amazon EC2 / EBS<br/>(Check Unattached Volumes)"]):::aws
+        IAM(["AWS IAM<br/>(Check Unused Keys)"]):::aws
+    end
+
+    SNS(["Amazon SNS<br/>(Alert Topic)"]):::alert
+    Admin(["Security Admin<br/>(Email Notification)"]):::user
+
+    EB ==>|1. Triggers Daily| L
+    L -.->|2. Queries API| S3
+    L -.->|2. Queries API| EC2
+    L -.->|2. Queries API| IAM
+    L ==>|3. Publishes Findings| SNS
+    SNS ==>|4. Sends Email Alert| Admin
