@@ -69,6 +69,11 @@
      schedule_expression = "cron(0 8 * * ? *)"
    }
 
+   resource "aws_cloudwatch_log_group" "janitor_logs" {
+     name              = "/aws/lambda/${aws_lambda_function.janitor.function_name}"
+     retention_in_days = 30
+   }
+
    resource "aws_cloudwatch_event_target" "lambda_target" {
      rule      = aws_cloudwatch_event_rule.daily_trigger.name
      target_id = "CloudJanitorLambda"
