@@ -56,22 +56,20 @@ def check_unattached_ebs_volumes():
 def lambda_handler(event, context):
     print("Starting AWS Cloud Janitor Audit...")
     all_findings = []
-    s3_findings = check_s3_public_access()
-    ebs_findings = check_unattached_ebs_volumes()
-    all_findings.extend(s3_findings)
-    all_findings.extend(ebs_findings)
-    
+    all_findings.extend(check_s3_public_access())
+    all_findings.extend(check_unattached_ebs_volumes())
+    all_findings.extend(check_open_security_groups())  # <--- ADD THIS LINE
+
     if not all_findings:
         report = "SUCCESS: No security or cost misconfigurations found. Your AWS environment is clean!"
     else:
         report = "AUDIT FINDINGS:\n" + "\n".join(all_findings)
-        
+
     print("\n" + "="*50)
     print(report)
     print("="*50 + "\n")
-    return {'statusCode': 200, 'body': json.dumps(report)}
 
-# SEND THE EMAIL ALERT VIA SNS
+    # SEND THE EMAIL ALERT VIA SNS
     try:
         sns_client = boto3.client('sns')
         sns_client.publish(
@@ -84,7 +82,6 @@ def lambda_handler(event, context):
         print(f"Failed to send SNS alert: {str(e)}")
 
     return {'statusCode': 200, 'body': json.dumps(report)}
-
 
 if __name__ == "__main__":
     lambda_handler({}, {})
