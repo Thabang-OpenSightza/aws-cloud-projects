@@ -35,6 +35,24 @@ def check_unattached_ebs_volumes():
         findings.append(f"ERROR checking EBS: {str(e)}")
     return findings
 
+    def check_open_security_groups():
+        ec2_client = boto3.client('ec2')
+        findings = []
+        try:
+            response = ec2_client.describe_security_groups()
+            for sg in response['SecurityGroups']:
+                sg_id = sg['GroupId']
+                sg_name = sg['GroupName']
+                # Check inbound rules for open access to the world
+                for permission in sg['IpPermissions']:
+                    for ip_range in permission.get('IpRanges', []):
+                        if ip_range.get('CidrIp') == '0.0.0.0/0':
+                            port = permission.get('FromPort', 'All')
+                            findings.append(f"SECURITY RISK: Security Group '{sg_name}' ({sg_id}) has port {port} open to the world (0.0.0.0/0).")
+        except Exception as e:
+            findings.append(f"ERROR checking Security Groups: {str(e)}")
+        return findings
+
 def lambda_handler(event, context):
     print("Starting AWS Cloud Janitor Audit...")
     all_findings = []
