@@ -53,6 +53,20 @@ def check_unattached_ebs_volumes():
             findings.append(f"ERROR checking Security Groups: {str(e)}")
         return findings
 
+def check_root_mfa():
+    iam_client = boto3.client('iam')
+    findings = []
+    try:
+        # Get summary of account
+        summary = iam_client.get_account_summary()
+        # If AccountMFAEnabled is 0, root has no MFA
+        if summary['SummaryMap'].get('AccountMFAEnabled', 0) == 0:
+            findings.append("CRITICAL SECURITY RISK: Root account does NOT have MFA enabled!")
+    except Exception as e:
+        # Note: This often fails in free tier accounts due to permissions, which is fine to catch
+        findings.append(f"INFO: Could not verify Root MFA status (Expected in limited permission environments).")
+    return findings
+
 def lambda_handler(event, context):
     print("Starting AWS Cloud Janitor Audit...")
     all_findings = []
@@ -61,6 +75,7 @@ def lambda_handler(event, context):
     all_findings.extend(check_s3_public_access())
     all_findings.extend(check_unattached_ebs_volumes())
     all_findings.extend(check_open_security_groups())
+    all_findings.extend(check_root_mfa())
 
     # Create HTML Report
     if not all_findings:
