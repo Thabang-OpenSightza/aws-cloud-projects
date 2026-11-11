@@ -53,7 +53,12 @@
 	SNS_TOPIC_ARN = aws_sns_topic.alert_topic.arn
       }  
      }
-  
+      tags = {
+        Name        = "CloudJanitor-Resource"
+        Environment = "Production"
+        Project     = "SecurityAudit"
+        ManagedBy   = "Terraform"
+      }
      #runtime	= "python3.9"
      #timeout	= 30
    } 
@@ -61,6 +66,13 @@
    # 5. SNS Topic for Alerts
    resource "aws_sns_topic" "alert_topic" {
      name = "cloud-janitor-alerts"
+
+       tags = {
+         Name        = "CloudJanitor-Resource"
+         Environment = "Production"
+         Project     = "SecurityAudit"
+         ManagedBy   = "Terraform"
+       }
    }
 
    # 6. EventBridge Rule (Daily at 08:00 UTC)
@@ -72,6 +84,13 @@
    resource "aws_cloudwatch_log_group" "janitor_logs" {
      name              = "/aws/lambda/${aws_lambda_function.janitor.function_name}"
      retention_in_days = 30
+
+       tags = {
+         Name        = "CloudJanitor-Resource"
+         Environment = "Production"
+         Project     = "SecurityAudit"
+         ManagedBy   = "Terraform"
+       }
    }
 
    resource "aws_cloudwatch_event_target" "lambda_target" {
