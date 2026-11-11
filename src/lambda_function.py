@@ -56,32 +56,50 @@ def check_unattached_ebs_volumes():
 def lambda_handler(event, context):
     print("Starting AWS Cloud Janitor Audit...")
     all_findings = []
+
+    # Run all checks
     all_findings.extend(check_s3_public_access())
     all_findings.extend(check_unattached_ebs_volumes())
-    all_findings.extend(check_open_security_groups())  # <--- ADD THIS LINE
+    all_findings.extend(check_open_security_groups())
 
+    # Create HTML Report
     if not all_findings:
-        report = "SUCCESS: No security or cost misconfigurations found. Your AWS environment is clean!"
+        html_body = "<h2 style='color:green;'> SUCCESS: Your AWS environment is clean!</h2>"
+        html_body += "<p>No security or cost misconfigurations found.</p>"
     else:
-        report = "AUDIT FINDINGS:\n" + "\n".join(all_findings)
+        html_body = "<h2 style='color:red;'> AUDIT FINDINGS:</h2>"
+        html_body += "<ul>"
+        for finding in all_findings:
+            # Color code based on severity keywords
+            if "SECURITY RISK" in finding:
+                html_body += f"<li style='color:red; font-weight:bold;'>{finding}</li>"
+            elif "COST WARNING" in finding:
+                html_body += f"<li style='color:orange;'>{finding}</li>"
+            else:
+                html_body += f"<li style='color:blue;'>{finding}</li>"
+        html_body += "</ul>"
 
     print("\n" + "="*50)
-    print(report)
-    print("="*50 + "\n")
+    print("Report generated. Sending via SNS...")
 
-    # SEND THE EMAIL ALERT VIA SNS
+    # Send via SNS
     try:
         sns_client = boto3.client('sns')
         sns_client.publish(
             TopicArn=os.environ['SNS_TOPIC_ARN'],
-            Message=report,
-            Subject='AWS Cloud Janitor: Daily Audit Report'
+            Message=html_body,
+            Subject='AWS Cloud Janitor: Daily Audit Report',
+            MessageAttributes={
+                'AWS.SNS.SMS.SMSType': {
+                    'DataType': 'String',
+                    'StringValue': 'Transactional'
+                }
+            }
         )
         print("Alert successfully sent to SNS topic.")
     except Exception as e:
         print(f"Failed to send SNS alert: {str(e)}")
 
-    return {'statusCode': 200, 'body': json.dumps(report)}
-
+    return {'statusCode': 200, 'body': 'Report sent.'}
 if __name__ == "__main__":
     lambda_handler({}, {})
